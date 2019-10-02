@@ -1,0 +1,73 @@
+library(rvest)
+library(xml2)
+library(tibble)
+
+FighterList <- read.csv("espn_fighter.txt", header = TRUE, sep = ",", dec = ".")
+
+FighterNames <- as.vector(FighterList[,2])
+FighterIDs <- as.vector(FighterList[,1])
+
+IDandNames <- cbind(FighterIDs,FighterNames)
+
+FighterIDs <- data.frame(FighterIDs)
+FighterNames <- data.frame(FighterNames)
+
+IDandNames <- gsub(" ","-",IDandNames)
+
+All = NULL
+All1 = NULL
+Clinch = NULL
+Ground = NULL
+Stand = NULL
+
+
+for (i in 1:length(FighterIDs))
+{
+  websitelist[i,1]= paste("https://www.espn.com/mma/fighter/stats/_/id",IDandNames[i,1],IDandNames[i,2], 
+                  sep="/")
+}
+
+
+## Was told to put the tryCatch around everything - possible I did that wrong as it's only skipping the Stand portion currently
+for (i in 1:5)
+{
+  tryCatch(
+  URL = websitelist[i,1]
+
+    Stand <- read_html(URL) %>%
+    html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[1]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+    html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+  Stand <- data.frame(Stand)
+
+  Clinch <- read_html(URL) %>%
+    html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[2]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+    html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+  Clinch <- data.frame(Clinch)
+  Ground <- read_html(URL) %>%
+    html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[3]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+    html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+  Ground <- data.frame(Ground)
+  
+  ## Combine the three tables horizontally
+  FC <- cbind(Stand,Clinch,Ground)
+  FC <- FC[,-c(35,34,33,19,18,17)]
+  FC <- FC[-c(1),]
+  
+  ## Removed the opponent/date/event from the 2nd two table so it's just a continuous table of stats 
+  
+  FC <- add_column(FC,X0=FighterNames[i,1],.before = "X1")
+  FC <- add_column (FC,X0.0=FighterIDs[i,1],.after="X0")
+  All1 <- rbind(All1,FC),
+  error = function(e) {e}
+  )  
+  
+  ## If there was an error, then I want it to go back to beginning as soon as it finds the error (and not complete the rest of the code)
+  ## If there isn't an error I just want it to execute the code normally (which I've tested and should work)
+  if(inherits(missingdata, error)) next
+  
+  Sys.sleep(sample(seq(1.0,2.5,0.5), 1))
+  next
+}
+
+data.frame(All)
+write.csv(All,"AllData.csv")
