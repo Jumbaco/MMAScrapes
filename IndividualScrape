@@ -1,0 +1,34 @@
+library(rvest)
+
+## Grab the 3 tables individually and convert to data.frame()
+
+URL <- "https://www.espn.com/mma/fighter/stats/_/id/2335679/nate-diaz"
+NDStand <- read_html(URL) %>%
+  html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[1]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+  html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+NDStand <- data.frame(NDStand)
+NDClinch <- read_html(URL) %>%
+  html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[2]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+  html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+NDClinch <- data.frame(NDClinch)
+NDGround <- read_html(URL) %>%
+  html_nodes(xpath = '//*[@id="fittPageContainer"]/div[2]/div[5]/div/div/div[1]/article/div/section[3]/table/tbody/tr/td/div/div/div[2]/table/tbody/tr/td/div/table') %>%
+  html_table(trim=TRUE,fill=TRUE,header=FALSE, dec=".")
+NDGround <- data.frame(NDGround)
+
+## Combine the three tables horizontally
+NDAll <- cbind(NDStand,NDClinch,NDGround)
+
+## Removed the opponent/date/event from the 2nd two table so it's just a continuous table of stats 
+NDCleaned <- NDAll[,-c(33,34,35,17,18,19)]
+
+## Can also do this to insert the fighter ID + fighter name at the beginning of the table
+
+ND <- add_column(NDCleaned,X0="Nate Diaz",.before = "X1")
+ND[1,1] <- "Fighter"
+ND <- add_column (ND,X0.0="2335679",.after="X0")
+ND[1,2] <- "Fighter ID"
+
+write.csv(ND, file = "NateDiaz.csv")
+
+################## Tested it on 5 different fighters - seemed to work fine for all of them. 
